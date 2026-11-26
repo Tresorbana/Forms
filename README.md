@@ -1,32 +1,26 @@
-# Pandas Exercises 35–42 — React Native App
+# React Native Exercises — PowerPoint pages 35–42
 
 **Student:** BANA Emmy Tresor  
 **Class:** Y3A
 
-Each exercise (35, 36, 37, 38, 39, 40, 41 and 42) opens on its **own screen**.
+This app is based on the React Native PowerPoint, not the Pandas notebook.
 
-## Navigation
-- The home screen lists all eight exercises.
-- Tap a question to open its individual screen.
-- Use **Previous** and **Next** to move between exercise screens.
-- Use **All exercises** to return to the home list.
-- The Employee Dataset is available from the home screen.
+- PowerPoint page 35: mobile app assets reference/example (not an exercise form).
+- PowerPoint page 36: Exercise 1 — User Registration Form.
+- PowerPoint page 37: Exercise 2 — Student Admission Form.
+- PowerPoint page 38: Exercise 3 — Online Banking Transfer Form.
+- PowerPoint page 39: Exercise 4 — Hospital Appointment Form.
+- PowerPoint page 40: Exercise 5 — Job Application Form.
+- PowerPoint page 41: Exercise 6 — E-Commerce Checkout Form.
+- PowerPoint page 42: Exercise 7 — Event Registration Form.
 
-## Exercises
-35. Create an Experience Level column using `apply()`.
-36. Replace IT with Information Technology.
-37. Change all city names to uppercase.
-38. Change Kennedy's salary to 3,500 using `at[]`.
-39. Create Total Compensation using Salary and Bonus. The bonus follows exercise 33: 1,000 for employees with more than 10 years of experience.
-40. Rename Experience to Years of Experience.
-41. Calculate average salary for each department.
-42. Calculate maximum salary for each department.
+Each exercise opens on a separate page. The home screen lists all forms. Use Back to forms to choose another. Forms include simple required-field and format checks based on the PowerPoint.
 
 ## Run
-1. Extract this ZIP.
-2. Open a terminal in the project folder.
-3. Install packages: `npm install`
-4. Start Expo: `npx expo start`
-5. Scan the QR code with Expo Go, or press `a` for an Android emulator.
+1. Extract the ZIP.
+2. Open a terminal in this folder.
+3. Run `npm install`.
+4. Run `npx expo start`.
+5. Scan the QR code using Expo Go.
 
-The app uses basic React Native components and local JavaScript state. No navigation library is needed for this small project.
+The app uses basic React Native components and expo-document-picker for CV selection on web and mobile. Selected files stay local; this practice app does not upload files or send form data to a server.

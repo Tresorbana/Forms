@@ -1,17 +1,9 @@
 {
   "expo": {
-    "name": "Pandas Exercises 35-42",
-    "slug": "pandas-exercises-35-42",
+    "name": "Form Exercises",
+    "slug": "form-exercises",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "backgroundColor": "#F4F7F5"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#F4F7F5"
-      }
-    }
+    "userInterfaceStyle": "light"
   }
 }

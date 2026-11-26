@@ -1,345 +1,221 @@
-import React, { useMemo, useState } from "react";
-import {
-  SafeAreaView, ScrollView, View, Text, StyleSheet, Pressable,
-  StatusBar, Platform
-} from "react-native";
-import { StatusBar as ExpoStatusBar } from "expo-status-bar";
+import React, { useState } from "react";
+import { SafeAreaView, ScrollView, View, Text as NativeText, TextInput, Pressable, Switch, Alert, Platform, StyleSheet } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import * as DocumentPicker from "expo-document-picker";
 
-const ORIGINAL_EMPLOYEES = [
-  { id: 0, name: "Arlene", experience: 4, city: "Rubavu", department: "IT", salary: 3000 },
-  { id: 1, name: "Darius", experience: 11, city: "Musanze", department: "Finance", salary: 2500 },
-  { id: 2, name: "Happy", experience: 3, city: "Kigali", department: "HR", salary: 2500 },
-  { id: 3, name: "Jordan", experience: 13, city: "Nyamata", department: "IT", salary: 3200 },
-  { id: 4, name: "Clare", experience: 8, city: "Kamonyi", department: "HR", salary: 2700 },
-  { id: 5, name: "Bonnette", experience: 15, city: "Muhanga", department: "IT", salary: 4000 },
-  { id: 6, name: "Kennedy", experience: 16, city: "Huye", department: "IT", salary: 2800 }
+// Use the device's system font without downloading font files.
+const fontFamily = Platform.select({ web: "Inter, system-ui, sans-serif", ios: "System", default: "sans-serif" });
+const Text = ({ style, ...props }) => <NativeText {...props} style={[{ fontFamily }, style]} />;
+
+const forms = [
+  {
+    title: "User Registration Form",
+    fields: [
+      ["Full Name", "text", true, 3], ["Email", "email", true], ["Password", "password", true, 8],
+      ["Confirm Password", "confirm", true], ["Phone Number", "phone", true], ["Accept Terms", "check", true]
+    ]
+  },
+  {
+    title: "Student Admission Form",
+    fields: [
+      ["Student Name", "text", true], ["Date of Birth", "date", true], ["Gender", "select", true, ["Male", "Female"]],
+      ["Nationality", "text", true], ["Email", "email", true], ["Phone", "phone", true],
+      ["Previous School", "text", true], ["Program", "select", true, ["Science", "Software Development", "Networking", "Other"]],
+      ["Academic Score", "number", true, 50]
+    ]
+  },
+  {
+    title: "Online Banking Transfer",
+    fields: [
+      ["Account Name", "text", true], ["Account Number", "digits", true], ["Amount", "positive", true],
+      ["Currency", "select", true, ["RWF", "USD", "EUR"]], ["Transfer Description", "optional", false, 100],
+      ["PIN", "pin", true]
+    ]
+  },
+  {
+    title: "Hospital Appointment Form",
+    fields: [
+      ["Patient Name", "text", true], ["Phone Number", "phone", true], ["Email", "emailOptional", false],
+      ["Department", "select", true, ["General", "Dental", "Maternity", "Emergency"]],
+      ["Doctor", "text", true], ["Appointment Date", "futureDate", true], ["Appointment Time", "text", true],
+      ["Reason for Visit", "long", true, 10]
+    ]
+  },
+  {
+    title: "Job Application Form",
+    fields: [
+      ["Full Name", "text", true], ["Email", "email", true], ["Phone", "phone", true],
+      ["Position", "text", true], ["Education Level", "select", true, ["Secondary", "Diploma", "Bachelor", "Master"]],
+      ["Years of Experience", "nonnegative", true], ["Cover Letter", "long", true, 50], ["CV Selected", "file", true]
+    ]
+  },
+  {
+    title: "E-Commerce Checkout Form",
+    fields: [
+      ["Customer Name", "text", true], ["Phone", "phone", true], ["Email", "email", true],
+      ["Delivery Address", "long", true], ["City", "text", true], ["Product Quantity", "positiveInteger", true],
+      ["Payment Method", "select", true, ["Mobile Money", "Card", "Cash on Delivery"]],
+      ["Delivery Option", "select", true, ["Standard", "Express"]]
+    ]
+  },
+  {
+    title: "Event Registration Form",
+    fields: [
+      ["Full Name", "text", true], ["Email", "email", true], ["Phone", "phone", true],
+      ["Organization", "text", true], ["Job Title", "text", true],
+      ["Attendance Type", "select", true, ["Physical", "Virtual"]],
+      ["Number of Days", "days", true], ["Dietary Requirement", "text", false]
+    ]
+  }
 ];
 
-const GREEN = "#247A4B";
-const money = (value) => Number(value).toLocaleString("en-US");
+const numericTypes = ["number", "positive", "positiveInteger", "nonnegative", "days", "digits", "pin"];
 
-const QUESTIONS = [
-  { id: 35, title: "Experience Level", subtitle: "Create an Experience Level column using apply()." },
-  { id: 36, title: "Replace Department", subtitle: "Replace IT with Information Technology." },
-  { id: 37, title: "Uppercase City Names", subtitle: "Change all city names to uppercase." },
-  { id: 38, title: "Update Kennedy's Salary", subtitle: "Change Kennedy's salary to 3,500 using at[]." },
-  { id: 39, title: "Total Compensation", subtitle: "Create a Total Compensation column combining Salary and Bonus." },
-  { id: 40, title: "Rename Column", subtitle: "Rename Experience to Years of Experience." },
-  { id: 41, title: "Average Salary by Department", subtitle: "Calculate the average salary for each department." },
-  { id: 42, title: "Maximum Salary by Department", subtitle: "Calculate the maximum salary for each department." }
-];
-
-function DataTable({ rows, columns }) {
-  return (
-    <View style={styles.table}>
-      <View style={[styles.tableRow, styles.tableHeader]}>
-        {columns.map((column) => (
-          <Text key={column.key} style={[styles.cell, styles.headerCell, { flex: column.flex || 1 }]}>
-            {column.label}
-          </Text>
-        ))}
-      </View>
-      {rows.map((row, index) => (
-        <View key={row.id ?? index} style={[styles.tableRow, index % 2 === 1 && styles.altRow]}>
-          {columns.map((column) => (
-            <Text key={column.key} style={[styles.cell, { flex: column.flex || 1 }]} numberOfLines={2}>
-              {column.render ? column.render(row) : String(row[column.key] ?? "")}
-            </Text>
-          ))}
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function Explanation({ children }) {
-  return <Text style={styles.explanation}>{children}</Text>;
+function fieldError([name, type, required, rule], value, data) {
+  if (required && !value) return "This field is required.";
+  if (!value) return "";
+  const number = Number(value);
+  if (["email", "emailOptional"].includes(type) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Enter a valid email address.";
+  if (type === "phone" && !/^[+0-9][0-9\s-]{7,14}$/.test(value)) return "Enter a valid phone number.";
+  if (["text", "long", "password"].includes(type) && rule && value.length < rule) return "Enter at least " + rule + " characters.";
+  if (type === "confirm" && value !== data.Password) return "Passwords do not match.";
+  if (numericTypes.includes(type) && !Number.isFinite(number)) return "Enter a valid number.";
+  if (type === "digits" && !/^\d+$/.test(value)) return "Use numbers only.";
+  if (type === "pin" && !/^\d{4}$/.test(value)) return "Enter exactly 4 digits.";
+  if (type === "positive" && number <= 0) return "Enter an amount greater than 0.";
+  if (type === "positiveInteger" && (!Number.isInteger(number) || number <= 0)) return "Enter a whole number greater than 0.";
+  if (type === "number" && (number < rule || number > 100)) return "Score must be between " + rule + " and 100.";
+  if (type === "nonnegative" && number < 0) return "Experience cannot be negative.";
+  if (type === "days" && (!Number.isInteger(number) || number < 1 || number > 3)) return "Enter a number from 1 to 3.";
+  if (type === "optional" && value.length > rule) return "Maximum " + rule + " characters.";
+  if (["date", "futureDate"].includes(type)) {
+    const date = new Date(value + "T00:00:00");
+    const valid = /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(date.getTime()) && date.getFullYear() === Number(value.slice(0, 4)) && date.getMonth() + 1 === Number(value.slice(5, 7)) && date.getDate() === Number(value.slice(8, 10));
+    if (!valid) return "Enter a valid date (YYYY-MM-DD).";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (type === "futureDate" && date < today) return "Appointment date cannot be in the past.";
+  }
+  return "";
 }
 
 export default function App() {
-  const [employees, setEmployees] = useState(ORIGINAL_EMPLOYEES);
-  const [page, setPage] = useState("home");
+  const [page, setPage] = useState(-1);
+  const [values, setValues] = useState(() => forms.map(() => ({})));
+  const [errors, setErrors] = useState({});
+  const [success, setSuccess] = useState(false);
+  const form = forms[page];
+  const data = values[page] || {};
 
-  const reset = () => {
-    setEmployees(ORIGINAL_EMPLOYEES);
-    setPage("home");
-  };
+  function open(index) {
+    setPage(index);
+    setErrors({});
+    setSuccess(false);
+  }
 
-  const currentQuestionIndex = QUESTIONS.findIndex((q) => q.id === Number(page));
-  const currentQuestion = QUESTIONS[currentQuestionIndex];
+  function update(name, value) {
+    setValues(old => old.map((item, index) => index === page ? { ...item, [name]: value } : item));
+    setErrors(old => ({ ...old, [name]: "" }));
+  }
 
-  const experienceRows = useMemo(() => employees.map((employee) => {
-    let level = "Senior";
-    if (employee.experience < 5) level = "Junior";
-    else if (employee.experience <= 10) level = "Intermediate";
-    return { ...employee, level };
-  }), [employees]);
-
-  const departmentRows = useMemo(() => employees.map((employee) => ({
-    ...employee,
-    department: employee.department === "IT" ? "Information Technology" : employee.department
-  })), [employees]);
-
-  const cityRows = useMemo(() => employees.map((employee) => ({
-    ...employee, city: employee.city.toUpperCase()
-  })), [employees]);
-
-  const compensationRows = useMemo(() => employees.map((employee) => {
-    // Exercise 33 creates the bonus: 1,000 for employees with more than 10 years.
-    const bonus = employee.experience > 10 ? 1000 : 0;
-    return { ...employee, bonus, total: employee.salary + bonus };
-  }), [employees]);
-
-  const averageRows = useMemo(() => {
-    const groups = {};
-    employees.forEach((employee) => {
-      if (!groups[employee.department]) groups[employee.department] = { department: employee.department, total: 0, count: 0 };
-      groups[employee.department].total += employee.salary;
-      groups[employee.department].count += 1;
-    });
-    return Object.values(groups).map((group) => ({
-      department: group.department,
-      average: group.total / group.count
-    }));
-  }, [employees]);
-
-  const maximumRows = useMemo(() => {
-    const groups = {};
-    employees.forEach((employee) => {
-      groups[employee.department] = Math.max(groups[employee.department] ?? 0, employee.salary);
-    });
-    return Object.entries(groups).map(([department, maximum]) => ({ department, maximum }));
-  }, [employees]);
-
-  const renderExercise = () => {
-    switch (Number(page)) {
-      case 35:
-        return <>
-          <Explanation>Use a simple function with if and elif conditions. Employees with less than 5 years are Junior, 5 to 10 years are Intermediate, and more than 10 years are Senior.</Explanation>
-          <DataTable rows={experienceRows} columns={[
-            { key: "name", label: "Name", flex: 1.1 },
-            { key: "experience", label: "Years", flex: 0.7 },
-            { key: "level", label: "Experience level", flex: 1.5 }
-          ]} />
-        </>;
-      case 36:
-        return <>
-          <Explanation>Replace the department value IT with Information Technology. The other department values remain unchanged.</Explanation>
-          <DataTable rows={departmentRows} columns={[
-            { key: "name", label: "Name", flex: 1 },
-            { key: "department", label: "Department", flex: 2 }
-          ]} />
-        </>;
-      case 37:
-        return <>
-          <Explanation>Convert every city name to uppercase letters using a simple string method.</Explanation>
-          <DataTable rows={cityRows} columns={[
-            { key: "name", label: "Name", flex: 1 },
-            { key: "city", label: "City", flex: 1.4 }
-          ]} />
-        </>;
-      case 38:
-        return <>
-          <Explanation>Use at[] to update Kennedy's Salary value to 3,500. Tap the button to apply the update to the employee data.</Explanation>
-          <View style={styles.changeBox}>
-            <View><Text style={styles.smallLabel}>Current salary</Text><Text style={styles.oldSalary}>{money(employees.find((e) => e.name === "Kennedy").salary)}</Text></View>
-            <Text style={styles.arrow}>→</Text>
-            <View><Text style={styles.smallLabel}>Target salary</Text><Text style={styles.newSalary}>3,500</Text></View>
-          </View>
-          <DataTable rows={employees.filter((e) => e.name === "Kennedy")} columns={[
-            { key: "name", label: "Name", flex: 1 },
-            { key: "salary", label: "Salary", flex: 1, render: (row) => money(row.salary) }
-          ]} />
-          <Pressable style={styles.actionButton} onPress={() => setEmployees((old) => old.map((e) => e.name === "Kennedy" ? { ...e, salary: 3500 } : e))}>
-            <Text style={styles.actionButtonText}>Apply salary update</Text>
-          </Pressable>
-        </>;
-      case 39:
-        return <>
-          <Explanation>Use the Bonus created in Exercise 33: employees with more than 10 years of experience receive 1,000. Total Compensation = Salary + Bonus.</Explanation>
-          <DataTable rows={compensationRows} columns={[
-            { key: "name", label: "Name", flex: 1 },
-            { key: "salary", label: "Salary", flex: 1, render: (row) => money(row.salary) },
-            { key: "bonus", label: "Bonus", flex: 0.8, render: (row) => money(row.bonus) },
-            { key: "total", label: "Total", flex: 1, render: (row) => money(row.total) }
-          ]} />
-        </>;
-      case 40:
-        return <>
-          <Explanation>Rename the Experience column heading to Years of Experience. The employee values do not change.</Explanation>
-          <DataTable rows={employees} columns={[
-            { key: "name", label: "Name", flex: 1 },
-            { key: "experience", label: "Years of Experience", flex: 1.7 }
-          ]} />
-        </>;
-      case 41:
-        return <>
-          <Explanation>Group the employees by Department. Add the salaries in each group and divide by the number of employees to get the average.</Explanation>
-          <DataTable rows={averageRows} columns={[
-            { key: "department", label: "Department", flex: 1.4 },
-            { key: "average", label: "Average salary", flex: 1.2, render: (row) => money(Math.round(row.average * 100) / 100) }
-          ]} />
-        </>;
-      case 42:
-        return <>
-          <Explanation>Group employees by Department and show the highest salary found in each group.</Explanation>
-          <DataTable rows={maximumRows} columns={[
-            { key: "department", label: "Department", flex: 1.4 },
-            { key: "maximum", label: "Maximum salary", flex: 1.2, render: (row) => money(row.maximum) }
-          ]} />
-        </>;
-      default:
-        return null;
+  async function pickFile(name) {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
+      if (!result.canceled) update(name, result.assets[0]);
+    } catch {
+      setErrors(old => ({ ...old, [name]: "Could not open the file picker. Please try again." }));
     }
-  };
+  }
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      <ExpoStatusBar style="dark" />
-      <View style={styles.topBar}>
-        <Pressable onPress={() => setPage("home")} style={styles.brandArea}>
-          <Text style={styles.brand}>PANDAS PRACTICE</Text>
-          <Text style={styles.brandSub}>React Native learning app</Text>
+  function submit() {
+    const result = {};
+    form.fields.forEach(field => {
+      const value = data[field[0]];
+      const message = fieldError(field, typeof value === "string" ? value.trim() : value, data);
+      if (message) result[field[0]] = message;
+    });
+    setErrors(result);
+    if (Object.keys(result).length) return;
+    if (page === 2) {
+      if (Platform.OS === "web") {
+        if (window.confirm("Confirm transfer of " + data.Amount + " " + data.Currency + " to " + data["Account Name"] + "?")) setSuccess(true);
+      } else {
+        Alert.alert("Confirm Transfer", "Transfer " + data.Amount + " " + data.Currency + " to " + data["Account Name"] + "?", [
+          { text: "Cancel", style: "cancel" },
+          { text: "Confirm", onPress: () => setSuccess(true) }
+        ]);
+      }
+    } else setSuccess(true);
+  }
+
+  function renderField([name, type, required, options]) {
+    const value = data[name] || "";
+    return <View key={name} style={s.field}>
+      <Text style={s.label}>{name}{required ? " *" : ""}</Text>
+      {type === "check" ? <Switch accessibilityLabel={name} value={!!value} onValueChange={v => update(name, v)} />
+        : type === "file" ? <Pressable style={s.input} onPress={() => pickFile(name)} accessibilityRole="button">
+          <Text>{value ? value.name + " (change file)" : "Choose CV file"}</Text>
         </Pressable>
-        <Pressable onPress={reset} style={styles.resetButton}><Text style={styles.resetText}>Reset</Text></Pressable>
-      </View>
-
-      <View style={styles.profileCard}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>BT</Text></View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.studentName}>BANA Emmy Tresor</Text>
-          <Text style={styles.studentClass}>CLASS Y3A · QUESTIONS 35–42</Text>
+        : type === "select" ? <View style={s.options}>
+          {options.map(option => <Pressable key={option} accessibilityRole="radio" accessibilityState={{ checked: value === option }} onPress={() => update(name, option)} style={[s.option, value === option && s.selected]}>
+            <Text style={value === option && s.selectedText}>{option}</Text>
+          </Pressable>)}
         </View>
-      </View>
+        : <TextInput accessibilityLabel={name} value={value} onChangeText={text => update(name, text)}
+          placeholder={["date", "futureDate"].includes(type) ? "YYYY-MM-DD" : name === "Appointment Time" ? "e.g. 09:30" : name}
+          secureTextEntry={["password", "confirm", "pin"].includes(type)}
+          autoCapitalize={["email", "emailOptional", "password", "confirm"].includes(type) ? "none" : "sentences"}
+          keyboardType={numericTypes.includes(type) ? "numeric" : type === "phone" ? "phone-pad" : type.startsWith("email") ? "email-address" : "default"}
+          multiline={type === "long"} style={[s.input, type === "long" && s.multiline, errors[name] && s.invalid]} />}
+      {!!errors[name] && <Text style={s.error}>{errors[name]}</Text>}
+    </View>;
+  }
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {page === "home" ? (
-          <>
-            <Text style={styles.pageTitle}>Exercises</Text>
-            <Text style={styles.pageIntro}>Choose a question. Each exercise opens on its own page, and use the navigation buttons to move between questions.</Text>
-            <View style={styles.progressCard}>
-              <Text style={styles.progressNumber}>8</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.progressTitle}>Separate exercise pages</Text>
-                <Text style={styles.progressText}>Questions 35 through 42</Text>
-              </View>
-            </View>
-            {QUESTIONS.map((question, index) => (
-              <Pressable key={question.id} onPress={() => setPage(String(question.id))} style={styles.questionCard}>
-                <View style={styles.questionNumber}><Text style={styles.questionNumberText}>{question.id}</Text></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.questionTitle}>{question.title}</Text>
-                  <Text style={styles.questionSubtitle}>{question.subtitle}</Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </Pressable>
-            ))}
-            <Pressable onPress={() => setPage("employees")} style={styles.datasetButton}>
-              <Text style={styles.datasetButtonText}>View employee dataset</Text>
-            </Pressable>
-          </>
-        ) : page === "employees" ? (
-          <>
-            <Pressable onPress={() => setPage("home")} style={styles.backLink}><Text style={styles.backLinkText}>‹  All exercises</Text></Pressable>
-            <Text style={styles.pageTitle}>Employee dataset</Text>
-            <Text style={styles.pageIntro}>The seven employees from the original Pandas notebook.</Text>
-            <DataTable rows={employees} columns={[
-              { key: "name", label: "Name", flex: 1 },
-              { key: "experience", label: "Years", flex: 0.65 },
-              { key: "department", label: "Department", flex: 1.1 },
-              { key: "salary", label: "Salary", flex: 0.9, render: (row) => money(row.salary) }
-            ]} />
-          </>
-        ) : (
-          <>
-            <Pressable onPress={() => setPage("home")} style={styles.backLink}><Text style={styles.backLinkText}>‹  All exercises</Text></Pressable>
-            <View style={styles.detailTop}>
-              <Text style={styles.detailEyebrow}>QUESTION {currentQuestion.id} OF 50</Text>
-              <Text style={styles.pageTitle}>{currentQuestion.title}</Text>
-              <Text style={styles.pageIntro}>{currentQuestion.subtitle}</Text>
-            </View>
-            <View style={styles.answerCard}>
-              <Text style={styles.answerLabel}>ANSWER / RESULT</Text>
-              {renderExercise()}
-            </View>
-            <View style={styles.navigation}>
-              <Pressable
-                disabled={currentQuestionIndex === 0}
-                onPress={() => setPage(String(QUESTIONS[currentQuestionIndex - 1].id))}
-                style={[styles.navButton, currentQuestionIndex === 0 && styles.disabledButton]}>
-                <Text style={[styles.navButtonText, currentQuestionIndex === 0 && styles.disabledText]}>‹ Previous</Text>
-              </Pressable>
-              <Text style={styles.pageCount}>{currentQuestionIndex + 1} / {QUESTIONS.length}</Text>
-              <Pressable
-                disabled={currentQuestionIndex === QUESTIONS.length - 1}
-                onPress={() => setPage(String(QUESTIONS[currentQuestionIndex + 1].id))}
-                style={[styles.navButton, styles.nextButton, currentQuestionIndex === QUESTIONS.length - 1 && styles.disabledButton]}>
-                <Text style={[styles.navButtonText, styles.nextButtonText, currentQuestionIndex === QUESTIONS.length - 1 && styles.disabledText]}>Next ›</Text>
-              </Pressable>
-            </View>
-          </>
-        )}
-        <Text style={styles.footer}>BANA Emmy Tresor · Y3A</Text>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  return <SafeAreaView style={s.safe}>
+    <StatusBar style="dark" />
+    <ScrollView key={page} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+      <Text style={s.brand}>FORM PRACTICE</Text>
+      <Text style={s.muted}>BANA Emmy Tresor ? Y3A</Text>
+      {page === -1 ? <>
+        <Text style={s.heading}>Choose a form</Text>
+        {forms.map((item, index) => <Pressable key={item.title} style={s.row} onPress={() => open(index)}>
+          <Text style={s.label}>{item.title}</Text><Text style={s.link}>Open</Text>
+        </Pressable>)}
+      </> : <>
+        <Pressable onPress={() => open(-1)}><Text style={s.back}>Back to forms</Text></Pressable>
+        <Text style={s.heading}>{form.title}</Text>
+        {success ? <>
+          <Text style={s.notice}>Form submitted successfully.</Text>
+          <Pressable style={s.button} onPress={() => open(-1)}><Text style={s.selectedText}>Back to forms</Text></Pressable>
+        </> : <>
+          <Text style={s.muted}>* Required fields</Text>
+          {form.fields.map(renderField)}
+          <Pressable style={s.button} onPress={submit}><Text style={s.selectedText}>{page === 2 ? "Review transfer" : "Submit"}</Text></Pressable>
+        </>}
+      </>}
+    </ScrollView>
+  </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F4F7F5", paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0 },
-  topBar: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  brandArea: { flex: 1 },
-  brand: { color: GREEN, fontSize: 12, fontWeight: "800", letterSpacing: 1.5 },
-  brandSub: { color: "#75827A", fontSize: 11, marginTop: 3 },
-  resetButton: { backgroundColor: "#E4EEE8", paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10 },
-  resetText: { color: GREEN, fontWeight: "700", fontSize: 12 },
-  profileCard: { marginHorizontal: 18, padding: 15, backgroundColor: "#FFFFFF", borderRadius: 17, flexDirection: "row", alignItems: "center", gap: 12, elevation: 2, shadowColor: "#1C3325", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-  avatar: { width: 43, height: 43, borderRadius: 14, backgroundColor: "#DDEFE4", alignItems: "center", justifyContent: "center" },
-  avatarText: { color: GREEN, fontWeight: "900", fontSize: 15 },
-  studentName: { color: "#1E2B23", fontSize: 15, fontWeight: "800" },
-  studentClass: { color: "#829087", fontSize: 10, fontWeight: "700", marginTop: 4, letterSpacing: 0.7 },
-  scrollContent: { padding: 18, paddingBottom: 42 },
-  pageTitle: { fontSize: 23, fontWeight: "900", color: "#1C2B21", marginTop: 5 },
-  pageIntro: { color: "#718078", lineHeight: 20, fontSize: 13, marginTop: 7, marginBottom: 17 },
-  progressCard: { backgroundColor: "#E6F1E9", padding: 15, borderRadius: 15, flexDirection: "row", alignItems: "center", gap: 13, marginBottom: 13 },
-  progressNumber: { fontSize: 27, fontWeight: "900", color: GREEN },
-  progressTitle: { color: "#28583A", fontSize: 13, fontWeight: "800" },
-  progressText: { color: "#6E8475", fontSize: 11, marginTop: 3 },
-  questionCard: { backgroundColor: "#FFFFFF", borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, borderWidth: 1, borderColor: "#E9EFEB" },
-  questionNumber: { width: 38, height: 38, borderRadius: 12, backgroundColor: "#E6F2EA", alignItems: "center", justifyContent: "center" },
-  questionNumberText: { color: GREEN, fontSize: 13, fontWeight: "900" },
-  questionTitle: { color: "#26352B", fontSize: 14, fontWeight: "800" },
-  questionSubtitle: { color: "#7B887F", fontSize: 11, lineHeight: 16, marginTop: 4 },
-  chevron: { color: GREEN, fontSize: 25, paddingHorizontal: 3 },
-  datasetButton: { padding: 14, backgroundColor: GREEN, borderRadius: 12, alignItems: "center", marginTop: 4 },
-  datasetButtonText: { color: "#FFFFFF", fontWeight: "800", fontSize: 13 },
-  backLink: { alignSelf: "flex-start", paddingVertical: 6, paddingRight: 12, marginBottom: 9 },
-  backLinkText: { color: GREEN, fontSize: 13, fontWeight: "800" },
-  detailTop: { marginBottom: 2 },
-  detailEyebrow: { color: GREEN, fontWeight: "900", fontSize: 10, letterSpacing: 1.2 },
-  answerCard: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "#E8EFEB" },
-  answerLabel: { color: "#8A978E", fontSize: 10, fontWeight: "900", letterSpacing: 1, marginBottom: 13 },
-  explanation: { color: "#64736A", fontSize: 12, lineHeight: 19, marginBottom: 13 },
-  table: { borderWidth: 1, borderColor: "#E8EEE9", borderRadius: 9, overflow: "hidden" },
-  tableRow: { flexDirection: "row", backgroundColor: "#FFFFFF", minHeight: 38, alignItems: "center" },
-  tableHeader: { backgroundColor: "#EAF2EC" },
-  altRow: { backgroundColor: "#FAFCFA" },
-  cell: { color: "#425148", fontSize: 10, paddingVertical: 10, paddingHorizontal: 6 },
-  headerCell: { color: "#355D43", fontWeight: "800", fontSize: 10 },
-  changeBox: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 25, paddingVertical: 14, marginBottom: 12, backgroundColor: "#F5F9F6", borderRadius: 10 },
-  smallLabel: { color: "#859188", fontSize: 10, marginBottom: 4 },
-  oldSalary: { color: "#9A5B51", fontSize: 18, fontWeight: "800" },
-  newSalary: { color: GREEN, fontSize: 18, fontWeight: "900" },
-  arrow: { color: "#8A978E", fontSize: 20 },
-  actionButton: { alignSelf: "flex-start", backgroundColor: GREEN, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 9, marginTop: 12 },
-  actionButtonText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
-  navigation: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16, gap: 8 },
-  navButton: { backgroundColor: "#E5EEE8", borderRadius: 10, paddingVertical: 12, paddingHorizontal: 15, minWidth: 105, alignItems: "center" },
-  nextButton: { backgroundColor: GREEN },
-  navButtonText: { color: GREEN, fontWeight: "800", fontSize: 12 },
-  nextButtonText: { color: "#FFFFFF" },
-  disabledButton: { backgroundColor: "#EDF0EE" },
-  disabledText: { color: "#AAB3AD" },
-  pageCount: { color: "#87948B", fontSize: 11, fontWeight: "700" },
-  footer: { color: "#A0AAA3", textAlign: "center", fontSize: 10, marginTop: 22 }
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#FAFBFA" },
+  content: { width: "100%", maxWidth: 600, alignSelf: "center", padding: 24, paddingBottom: 48 },
+  brand: { color: "#247A4B", fontSize: 14, fontWeight: "700", marginBottom: 4 },
+  muted: { color: "#667168", fontSize: 14, marginBottom: 16 },
+  heading: { fontSize: 25, fontWeight: "700", color: "#202A23", marginVertical: 20 },
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16, paddingVertical: 18, borderBottomWidth: 1, borderColor: "#DFE5DF" },
+  link: { color: "#247A4B" },
+  back: { color: "#247A4B", marginTop: 20, paddingVertical: 8 },
+  field: { marginBottom: 18 },
+  label: { fontSize: 15, fontWeight: "600", color: "#27332B", marginBottom: 8, flexShrink: 1 },
+  input: { fontFamily, fontSize: 16, color: "#27332B", backgroundColor: "white", borderWidth: 1, borderColor: "#C9D3CB", borderRadius: 6, padding: 12 },
+  multiline: { minHeight: 100, textAlignVertical: "top" },
+  invalid: { borderColor: "#B42318" },
+  error: { color: "#B42318", fontSize: 13, marginTop: 6 },
+  options: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  option: { padding: 12, borderWidth: 1, borderColor: "#C9D3CB", borderRadius: 6 },
+  selected: { backgroundColor: "#247A4B", borderColor: "#247A4B" },
+  selectedText: { color: "white", fontSize: 16, fontWeight: "600" },
+  button: { backgroundColor: "#247A4B", padding: 14, borderRadius: 6, alignItems: "center", marginTop: 8 },
+  notice: { color: "#247A4B", fontSize: 16, marginBottom: 20 }
 });
